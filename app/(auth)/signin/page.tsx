@@ -16,8 +16,8 @@ const SigninPage = () => {
     e.preventDefault()
     const result = await signin({ input: state })
 
-    if (result.data.signin) {
-      setToken(result.data.signin.token)
+    if (result.data.signIn) {
+      setToken(result.data.signIn.token)
       router.push('/')
     }
   }

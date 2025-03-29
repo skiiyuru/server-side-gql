@@ -16,8 +16,8 @@ const SignupPage = () => {
     e.preventDefault()
     const result = await signup({ input: state })
 
-    if (result.data.createUser) {
-      setToken(result.data.createUser.token)
+    if (result.data.signUp) {
+      setToken(result.data.signUp.token)
       router.push('/')
     }
   }
