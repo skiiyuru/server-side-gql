@@ -1,3 +1,4 @@
+import Issue from '@/app/_components/Issue'
 import { db } from '@/db/db'
 import { InsertIssues, SelectIssues, issues, users } from '@/db/schema'
 import { GQLContext } from '@/types'
@@ -33,9 +34,33 @@ export const resolvers = {
     }
   },
 
+  STATUS: {
+    BACKLOG: 'backlog',
+    TODO: 'todo',
+    INPROGRESS: 'inprogress',
+    DONE: 'done'
+  },
+
+  Issue: {
+    user: async (issue, _, context: GQLContext) => {
+      if (!context.user) {
+        throw new GraphQLError('UNAUTHORIZED', {extensions: {code: 401}})
+      }
+
+      const user = await db.query.users.findFirst({
+        where: eq(users.id, issue.userId)
+      })
+
+      return user
+    }
+  },
+
   Query: {
     user: (_, __, context: GQLContext) => {
       return context.user
+    },
+
+    issues: async (_, __, context: GQLContext) => {
     }
   },
 
@@ -60,6 +85,25 @@ export const resolvers = {
       }
 
       return {...data.user, token: data.token}
+    },
+
+    createIssue: async (_, {input}, context: GQLContext) => {
+      if (!context.user) {
+        throw new GraphQLError('UNAUTHORIZED', {extensions: {code: 401}})
+      }
+
+      const newIssue = {...input, userId: context.user.id}
+
+      const data = await db.insert(issues).values(newIssue).returning()
+
+      // Validate the database response
+      if (!data || !data.length || !data[0]) {
+        throw new GraphQLError('Failed to create issue', {
+          extensions: { code: 500 }
+        })
+      }
+
+      return data[0]
     }
   }
 }
