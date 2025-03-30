@@ -55,12 +55,48 @@ export const resolvers = {
     }
   },
 
+  User: {
+    issues: async (user) => {
+      const data = await db.query.issues.findMany({
+        where:eq( issues.userId, user.id)
+      })
+
+      return data
+    }
+  },
+
   Query: {
     user: (_, __, context: GQLContext) => {
       return context.user
     },
 
-    issues: async (_, __, context: GQLContext) => {
+    issues: async (_, {input}, context: GQLContext) => {
+      if (!context.user) {
+        throw new GraphQLError('UNAUTHORIZED', {extensions: {code: 401}})
+      }
+
+      const andFilters = [eq(issues.userId, context.user.id)]
+
+      if (input && input.statuses) {
+        const statusFilters = input.statuses.map(status => eq(issues.status, status))
+
+        andFilters.push(or(...statusFilters))
+      }
+
+      const data = await db.query.issues.findMany({
+        where: and(...andFilters),
+        orderBy: [
+          asc(sql`case ${issues.status}
+              when 'backlog' then 1
+              when 'inprogress' then 2
+              when 'done' then 3
+              end
+            `),
+          desc(issues.createdAt)
+        ]
+      })
+
+      return data
     }
   },
 
@@ -104,6 +140,21 @@ export const resolvers = {
       }
 
       return data[0]
-    }
+    },
+
+    editIssue: async (_, { input }, ctx) => {
+	    if (!ctx.user)
+	      throw new GraphQLError('UNAUTHORIZED', { extensions: { code: 401 } })
+	
+	    const { id, ...update } = input
+	
+	    const result = await db
+	      .update(issues)
+	      .set(update ?? {})
+	      .where(and(eq(issues.userId, ctx.user.id), eq(issues.id, id)))
+	      .returning()
+	
+	    return result[0]
+	  },
   }
 }

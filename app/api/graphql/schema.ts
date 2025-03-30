@@ -8,6 +8,7 @@ type User {
   email: Email!
   createdAt: String!
   token: String
+  issues: [Issue]!
 }
 
 enum STATUS {
@@ -39,14 +40,26 @@ input CreateIssueInput {
   status: STATUS
 }
 
+input IssuesFilterInput {
+  statuses: [STATUS!]
+}
+
+input EditIssueInput {
+  id: ID!
+  status: STATUS
+  name: String
+  content: String
+}
+
 type Query {
   user: User
-  issues: [Issue]!
+  issues(input: IssuesFilterInput): [Issue]!
 }
 
 type Mutation {
   signIn(input: AuthInput!): User 
   signUp(input: AuthInput!): User
   createIssue(input: CreateIssueInput!): Issue
+  editIssue(input: EditIssueInput!): Issue!
 }
 `
